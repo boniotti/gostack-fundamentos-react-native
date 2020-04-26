@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 
 import { View } from 'react-native';
@@ -21,6 +21,8 @@ import {
   TotalProductsContainer,
   TotalProductsText,
   SubtotalValue,
+  EmptyCart,
+  EmptyCartText,
 } from './styles';
 
 import { useCart } from '../../hooks/cart';
@@ -47,20 +49,21 @@ const Cart: React.FC = () => {
   }
 
   const cartTotal = useMemo(() => {
-    const sumItens = products.reduce((total, product) => {
+    const total = products.reduce((total, product: Product) => {
       return product.price === null
         ? total
-        : total + product.price * product.quantity;
+        : total + product.quantity * product.price;
     }, 0);
 
-    return formatValue(sumItens);
+    return formatValue(total);
   }, [products]);
 
   const totalItensInCart = useMemo(() => {
-    const countItens = products.reduce((total, product) => {
+    const total = products.reduce((total, product: Product) => {
       return product.quantity === null ? total : total + product.quantity;
     }, 0);
-    return countItens;
+
+    return total;
   }, [products]);
 
   return (
@@ -69,6 +72,11 @@ const Cart: React.FC = () => {
         <ProductList
           data={products}
           keyExtractor={item => item.id}
+          ListEmptyComponent={
+            <EmptyCart>
+              <EmptyCartText>Seu carrinho está vazio</EmptyCartText>
+            </EmptyCart>
+          }
           ListFooterComponent={<View />}
           ListFooterComponentStyle={{
             height: 80,

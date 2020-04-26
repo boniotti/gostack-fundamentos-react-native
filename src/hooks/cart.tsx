@@ -30,79 +30,75 @@ const CartProvider: React.FC = ({ children }) => {
 
   useEffect(() => {
     async function loadProducts(): Promise<void> {
-      const cart = await AsyncStorage.getItem('@GoMarketplace');
+      const cart = await AsyncStorage.getItem('@GoMarketplace:cart');
 
       if (cart) {
         setProducts(JSON.parse(cart));
       }
-
-      // AsyncStorage.removeItem('@GoMarketplace');
     }
 
     loadProducts();
   }, []);
 
-  const addToCart = useCallback(
-    async product => {
-      const productIndex = products.findIndex(item => product.id === item.id);
+  const increment = useCallback(
+    async id => {
+      const rest = products.filter(item => item.id !== id);
+      const newItem = products.find(item => item.id === id);
 
-      if (productIndex !== -1) {
-        const newProductArray = [...products];
-        newProductArray[productIndex].quantity += 1;
-        setProducts(newProductArray);
-
-        await AsyncStorage.setItem(
-          '@GoMarketplace',
-          JSON.stringify(newProductArray),
-        );
-        return;
+      if (newItem) {
+        newItem.quantity += 1;
+        setProducts([...rest, newItem]);
       }
 
-      const cartProducts = {
-        ...product,
-        quantity: 1,
-      };
-
-      setProducts([...products, cartProducts]);
-
       await AsyncStorage.setItem(
-        '@GoMarketplace',
-        JSON.stringify([...products, cartProducts]),
+        '@GoMarketplace:cart',
+        JSON.stringify(products),
       );
     },
     [products],
   );
 
-  const increment = useCallback(
-    async id => {
-      const productIndex = products.findIndex(item => item.id === id);
+  const addToCart = useCallback(
+    async product => {
+      const productIndex = products.findIndex(item => item.id === product.id);
 
-      const newProductArray = [...products];
-      newProductArray[productIndex].quantity += 1;
-      setProducts(newProductArray);
+      if (productIndex < 0) {
+        setProducts(oldProductsStage => [
+          ...oldProductsStage,
+          { ...product, quantity: 1 },
+        ]);
 
-      await AsyncStorage.setItem(
-        '@GoMarketplace',
-        JSON.stringify(newProductArray),
-      );
+        await AsyncStorage.setItem(
+          '@GoMarketplace:cart',
+          JSON.stringify([...products, { ...product, quantity: 1 }]),
+        );
+
+        return;
+      }
+
+      increment(product.id);
     },
-    [products],
+    [products, increment],
   );
 
   const decrement = useCallback(
     async id => {
-      const productIndex = products.findIndex(item => item.id === id);
+      const rest = products.filter(item => item.id !== id);
+      const removeItem = products.find(item => item.id === id);
 
-      if (products[productIndex].quantity > 0) {
-        const newProductArray = [...products];
-        newProductArray[productIndex].quantity -= 1;
-        setProducts(newProductArray);
-
-        await AsyncStorage.setItem(
-          '@GoMarketplace',
-          JSON.stringify(newProductArray),
-        );
+      if (removeItem) {
+        if (removeItem.quantity <= 1) {
+          setProducts(rest);
+          return;
+        }
+        removeItem.quantity -= 1;
+        setProducts([...rest, removeItem]);
       }
+
+      await AsyncStorage.setItem(
+        '@GoMarketplace:cart',
+        JSON.stringify(products),
+      );
     },
     [products],
   );
